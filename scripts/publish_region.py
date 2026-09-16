@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
-"""Stage a locally-built DashMap offline region into zipped GitHub Release assets.
+"""Stage prepared offline map files into zipped release assets.
 
-Reads the per-region archive produced by the DashMap desktop tool
-(`tools/update_offline_data.py` → `tools/map_build/regions/<slug>/`) and
-packs it into a clean staging dir as one zip per dataset, plus a generated
-`release-manifest.json` and `SHA256SUMS`.
+Packs one zip per dataset for a single region, plus a generated
+`release-manifest.json` and `SHA256SUMS`, ready to upload as GitHub
+Release assets.
 
-This script does NOT build maps — building happens in the DashMap repo
-(Docker + osmium via its offline-maps tool). It only packages a region that
-is already built.
+This script does NOT build maps and knows nothing about whatever tooling
+produced the input files: it only packages finished files you hand it.
+Each release hosts two independent datasets for one region:
 
-Source layout (DashMap repo, never modified, only read):
+  - Offline Routing (Valhalla tiles)
+  - Nearby Streets (SQLite database)
 
-    tools/map_build/regions/<slug>/
-        valhalla/valhalla_tiles.tar
-        valhalla/manifest.json          ({"region","builtAtMs","valhallaVersion","sourceFile"})
-        valhalla/valhalla.json
-        valhalla/admin.sqlite          (optional)
-        valhalla/timezones.sqlite      (optional)
-        streets/streets-brazil.sqlite  (builder filename is fixed even for other regions)
-        streets/streets-manifest.json  ({"region","builtAtMs","sourceFile"})
+Input files are given explicitly — no directory layout is assumed:
+
+  --valhalla-tar FILE         routing tile tarball (dataset present iff given)
+  --valhalla-manifest FILE    routing manifest.json
+  --valhalla-config FILE      routing valhalla.json
+  --valhalla-admin FILE       routing admin database (optional)
+  --valhalla-timezones FILE   routing timezones database (optional)
+  --streets-db FILE           streets SQLite database (dataset present iff given)
+  --streets-manifest FILE     streets manifest.json
 
 Staged output (<out-dir>/):
 
@@ -33,18 +34,23 @@ Each zip contains the EXACT on-device filenames, so the app (or a manual
 
     valhalla.zip  →  valhalla_tiles.tar, manifest.json, valhalla.json,
                      admin.sqlite?, timezones.sqlite?
-                     (installs into …/files/valhalla/)
+                     (installs into the release manifest's valhallaDir)
     streets.zip   →  streets-brazil.sqlite, manifest.json
-                     (installs into …/files/offline_streets/)
+                     (installs into the release manifest's streetsDir)
 
 GitHub rejects release assets over 2 GB, so zips >= --split-above are split
 into --part-size chunks (`split -b` style naming: .part-aa, .part-ab, ...).
 Reassembly is `cat valhalla.zip.part-* > valhalla.zip`, then `unzip`.
 
 Usage:
-    ./scripts/publish_region.py --region-dir ~/DashMap/tools/map_build/regions/brazil \\
+    ./scripts/publish_region.py \\
         --slug brazil --display-name Brazil --tag brazil-v2026.09.16 \\
-        --geofabrik-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \\
+        --valhalla-tar valhalla_tiles.tar --valhalla-manifest manifest.json \\
+        --valhalla-config valhalla.json --valhalla-admin admin.sqlite \\
+        --valhalla-timezones timezones.sqlite \\
+        --streets-db streets.sqlite --streets-manifest streets-manifest.json \\
+        --built-at-ms 1750000000000 --source-pbf brazil-latest.osm.pbf \\
+        --source-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \\
         --out dist/brazil-v2026.09.16
 
     # then validate + upload:
@@ -68,8 +74,6 @@ ATTRIBUTION = "Map data © OpenStreetMap contributors · Open Database License (
 # Stay comfortably below GitHub's 2 GiB per-asset hard limit.
 DEFAULT_SPLIT_ABOVE = 1900 * 1024 * 1024
 DEFAULT_PART_SIZE = 1500 * 1024 * 1024
-
-STREETS_DB_NAMES = ("streets-brazil.sqlite", "streets.sqlite")
 
 
 def sha256_of(path: Path) -> str:
@@ -125,33 +129,50 @@ def pack_dataset(members: list[tuple[Path, str]], archive_name: str, out: Path,
     return [zip_path], "single", contents
 
 
-def read_json(path: Path) -> dict | None:
-    try:
-        return json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError):
+def need_file(value: str | None, flag: str) -> Path | None:
+    """Resolve an optional input-file flag, rejecting missing paths."""
+    if value is None:
         return None
+    p = Path(value)
+    if not p.is_file():
+        print(f"ERROR: {flag} points at {value}, which is not a file.", file=sys.stderr)
+        raise SystemExit(1)
+    return p
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--region-dir", required=True, help="tools/map_build/regions/<slug>/ from DashMap")
     ap.add_argument("--slug", required=True, help="region slug, e.g. brazil")
     ap.add_argument("--display-name", required=True, help='human name, e.g. "Brazil"')
     ap.add_argument("--tag", required=True, help="release tag, e.g. brazil-v2026.09.16")
-    ap.add_argument("--geofabrik-url", default="", help="source .osm.pbf URL for provenance")
     ap.add_argument("--out", required=True, help="staging output dir")
+    ap.add_argument("--valhalla-tar", default=None,
+                    help="routing tile tarball → stored as valhalla_tiles.tar (dataset present iff given)")
+    ap.add_argument("--valhalla-manifest", default=None,
+                    help="routing manifest file → stored as manifest.json")
+    ap.add_argument("--valhalla-config", default=None,
+                    help="routing config file → stored as valhalla.json")
+    ap.add_argument("--valhalla-admin", default=None,
+                    help="routing admin db → stored as admin.sqlite")
+    ap.add_argument("--valhalla-timezones", default=None,
+                    help="routing timezones db → stored as timezones.sqlite")
+    ap.add_argument("--streets-db", default=None,
+                    help="streets SQLite database → stored as streets-brazil.sqlite (dataset present iff given)")
+    ap.add_argument("--streets-manifest", default=None,
+                    help="streets manifest file → stored as manifest.json")
+    ap.add_argument("--built-at-ms", type=int, default=None,
+                    help="build timestamp (epoch ms); defaults to now — set it to the actual build date")
+    ap.add_argument("--source-pbf", default="",
+                    help="source extract filename, for provenance (free text)")
+    ap.add_argument("--source-url", default="",
+                    help="source extract URL, for provenance (free text)")
+    ap.add_argument("--valhalla-version", default="",
+                    help="routing engine build id, for provenance (free text)")
     ap.add_argument("--split-above", type=int, default=DEFAULT_SPLIT_ABOVE,
                     help="split a dataset zip at/above this many bytes")
     ap.add_argument("--part-size", type=int, default=DEFAULT_PART_SIZE,
                     help="bytes per split part")
     args = ap.parse_args()
-
-    src = Path(args.region_dir)
-    val_dir = src / "valhalla"
-    st_dir = src / "streets"
-    if not val_dir.is_dir() and not st_dir.is_dir():
-        print(f"ERROR: {src} has neither valhalla/ nor streets/ — wrong --region-dir?", file=sys.stderr)
-        return 1
 
     out = Path(args.out)
     if out.exists() and any(out.iterdir()):
@@ -159,35 +180,38 @@ def main() -> int:
         return 1
     out.mkdir(parents=True, exist_ok=True)
 
-    val_manifest = read_json(val_dir / "manifest.json") or {}
-    st_manifest = read_json(st_dir / "streets-manifest.json") or {}
-    built_at = int(val_manifest.get("builtAtMs") or st_manifest.get("builtAtMs") or time.time() * 1000)
-    pbf_file = str(val_manifest.get("sourceFile") or st_manifest.get("sourceFile") or "")
-    valhalla_version = str(val_manifest.get("valhallaVersion") or "")
-
     # ── Valhalla members (exact on-device names — unzip straight into valhallaDir) ──
-    val_members: list[tuple[Path, str]] = []
-    for name in ("valhalla_tiles.tar", "manifest.json", "valhalla.json",
-                 "admin.sqlite", "timezones.sqlite"):
-        p = val_dir / name
-        if p.exists():
-            val_members.append((p, name))
+    val_inputs = [
+        (need_file(args.valhalla_tar, "--valhalla-tar"), "valhalla_tiles.tar"),
+        (need_file(args.valhalla_manifest, "--valhalla-manifest"), "manifest.json"),
+        (need_file(args.valhalla_config, "--valhalla-config"), "valhalla.json"),
+        (need_file(args.valhalla_admin, "--valhalla-admin"), "admin.sqlite"),
+        (need_file(args.valhalla_timezones, "--valhalla-timezones"), "timezones.sqlite"),
+    ]
+    val_members = [(p, arc) for p, arc in val_inputs if p is not None]
+    if args.valhalla_tar is None and val_members:
+        print("ERROR: routing side files given without --valhalla-tar — "
+              "the tile tarball is required for the dataset.", file=sys.stderr)
+        return 1
 
     # ── Streets members (exact on-device names — unzip straight into streetsDir).
-    # The builder's db filename is fixed (streets-brazil.sqlite) even for other
-    # regions, and that legacy name is what the app already reads — kept as-is
-    # inside the zip so no rename is needed on install.
-    st_members: list[tuple[Path, str]] = []
-    db_src = next((st_dir / n for n in STREETS_DB_NAMES if (st_dir / n).exists()), None)
-    if db_src is not None:
-        st_members.append((db_src, "streets-brazil.sqlite"))
-    st_man = st_dir / "streets-manifest.json"
-    if st_man.exists():
-        st_members.append((st_man, "manifest.json"))
+    # Whatever the input db filename is, it is stored as streets-brazil.sqlite:
+    # that is the filename the app reads, so no rename is needed on install.
+    st_inputs = [
+        (need_file(args.streets_db, "--streets-db"), "streets-brazil.sqlite"),
+        (need_file(args.streets_manifest, "--streets-manifest"), "manifest.json"),
+    ]
+    st_members = [(p, arc) for p, arc in st_inputs if p is not None]
+    if args.streets_db is None and st_members:
+        print("ERROR: --streets-manifest given without --streets-db — "
+              "the database is required for the dataset.", file=sys.stderr)
+        return 1
 
     if not val_members and not st_members:
-        print("ERROR: nothing staged — source region dir has no recognizable dataset files.", file=sys.stderr)
+        print("ERROR: nothing to stage — give --valhalla-tar and/or --streets-db.", file=sys.stderr)
         return 1
+
+    built_at = args.built_at_ms if args.built_at_ms is not None else int(time.time() * 1000)
 
     def entry(p: Path) -> dict:
         return {"name": p.name, "size": p.stat().st_size, "sha256": sha256_of(p)}
@@ -208,15 +232,15 @@ def main() -> int:
         "tag": args.tag,
         "builtAtMs": built_at,
         "source": {
-            "pbfFile": pbf_file,
-            "geofabrikUrl": args.geofabrik_url,
-            "valhallaVersion": valhalla_version,
+            "pbfFile": args.source_pbf,
+            "sourceUrl": args.source_url,
+            "valhallaVersion": args.valhalla_version,
         },
         "valhalla": section("valhalla.zip", val_members),
         "streets": section("streets.zip", st_members),
         "install": {
-            # Mirrors update_offline_data.py DATASETS device paths. Each zip
-            # extracts directly into its dir — member names already match.
+            # Fixed on-device locations the app extracts each zip into —
+            # member names already match, so extraction needs no renaming.
             "valhallaDir": "/sdcard/Android/data/com.dashmap.app/files/valhalla",
             "streetsDir": "/sdcard/Android/data/com.dashmap.app/files/offline_streets",
         },

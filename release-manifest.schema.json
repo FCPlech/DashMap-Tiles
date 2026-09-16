@@ -12,10 +12,10 @@
     "builtAtMs": { "type": "integer" },
     "source": {
       "type": "object",
-      "required": ["pbfFile", "geofabrikUrl"],
+      "required": ["pbfFile", "sourceUrl"],
       "properties": {
         "pbfFile": { "type": "string" },
-        "geofabrikUrl": { "type": "string" },
+        "sourceUrl": { "type": "string" },
         "valhallaVersion": { "type": "string" }
       },
       "additionalProperties": false
@@ -86,7 +86,7 @@
     },
     "install": {
       "type": "object",
-      "description": "Where each asset goes on the device (mirrors update_offline_data.py DATASETS).",
+      "description": "Fixed on-device locations the app extracts each zip into.",
       "required": ["valhallaDir", "streetsDir"],
       "properties": {
         "valhallaDir": { "type": "string" },

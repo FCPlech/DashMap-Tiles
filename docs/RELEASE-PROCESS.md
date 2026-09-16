@@ -6,9 +6,13 @@ Brazil does not touch Argentina.
 
 ## Prerequisites
 
-- A finished local build in the DashMap repo:
-  `tools/map_build/regions/<slug>/{valhalla,streets}/`
-  (built with `tools/update_offline_data.py` — Docker + osmium).
+- The finished files for one region, prepared with your own tooling:
+  - Routing: a tile tarball (`valhalla_tiles.tar`), its `manifest.json`
+    (`{"region","builtAtMs",...}`), the `valhalla.json` config, plus
+    `admin.sqlite` / `timezones.sqlite` when produced.
+  - Streets: the SQLite database and its `manifest.json`
+    (`{"region","builtAtMs",...}`).
+  - At least one of the two datasets is required; shipping both is preferred.
 - `gh` CLI authenticated with `contents: write` on this repo.
 - This repo checked out locally.
 
@@ -17,20 +21,31 @@ Brazil does not touch Argentina.
 ```bash
 # from this repo root:
 ./scripts/publish_region.py \
-  --region-dir ~/DashMap/tools/map_build/regions/brazil \
   --slug brazil \
   --display-name Brazil \
   --tag brazil-v2026.09.16 \
-  --geofabrik-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
+  --valhalla-tar valhalla_tiles.tar \
+  --valhalla-manifest manifest.json \
+  --valhalla-config valhalla.json \
+  --valhalla-admin admin.sqlite \
+  --valhalla-timezones timezones.sqlite \
+  --streets-db streets.sqlite \
+  --streets-manifest streets-manifest.json \
+  --built-at-ms 1750000000000 \
+  --source-pbf brazil-latest.osm.pbf \
+  --source-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
   --out dist/brazil-v2026.09.16
 ```
 
-This reads (never moves) the build output and packs one zip per dataset —
+This reads (never moves) the input files and packs one zip per dataset —
 `valhalla.zip` (with `valhalla_tiles.tar`, `manifest.json`, `valhalla.json`,
-`admin.sqlite`/`timezones.sqlite` when built) and `streets.zip` (with
-`streets-brazil.sqlite`, `manifest.json`) — splitting a zip that would exceed
-GitHub's 2 GiB per-asset limit into `.part-aa/ab/...` chunks. It also writes
-`release-manifest.json` + `SHA256SUMS` into the staging dir.
+`admin.sqlite`/`timezones.sqlite` when given) and `streets.zip` (with the
+database stored as `streets-brazil.sqlite`, plus `manifest.json`) —
+splitting a zip that would exceed GitHub's 2 GiB per-asset limit into
+`.part-aa/ab/...` chunks. It also writes `release-manifest.json` +
+`SHA256SUMS` into the staging dir. `--built-at-ms` should be the actual
+build date (defaults to now); `--source-pbf`/`--source-url` are free-text
+provenance recorded in the manifest.
 
 ## 2. Validate
 

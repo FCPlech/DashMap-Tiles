@@ -61,26 +61,35 @@ jobs:
           python3 - <<'EOF'
           import json
           from pathlib import Path
-          reg = Path('/tmp/fake-region/brazil')
-          (reg / 'valhalla').mkdir(parents=True, exist_ok=True)
-          (reg / 'streets').mkdir(parents=True, exist_ok=True)
-          (reg / 'valhalla' / 'valhalla_tiles.tar').write_bytes(b'fake-tar' * 100)
-          (reg / 'valhalla' / 'manifest.json').write_text(json.dumps(
-              {"region": "Brazil", "builtAtMs": 1750000000000,
-               "valhallaVersion": "test", "sourceFile": "brazil-latest.osm.pbf"}))
-          (reg / 'streets' / 'streets-brazil.sqlite').write_bytes(b'fake-db')
-          (reg / 'streets' / 'streets-manifest.json').write_text(json.dumps(
-              {"region": "Brazil", "builtAtMs": 1750000000000,
-               "sourceFile": "brazil-latest.osm.pbf"}))
+          reg = Path('/tmp/fake-input')
+          reg.mkdir(parents=True, exist_ok=True)
+          (reg / 'valhalla_tiles.tar').write_bytes(b'fake-tar' * 100)
+          (reg / 'valhalla-manifest.json').write_text(json.dumps(
+              {"region": "Brazil", "builtAtMs": 1750000000000}))
+          (reg / 'streets.sqlite').write_bytes(b'fake-db')
+          (reg / 'streets-manifest.json').write_text(json.dumps(
+              {"region": "Brazil", "builtAtMs": 1750000000000}))
           EOF
-          python3 scripts/publish_region.py --region-dir /tmp/fake-region/brazil \
+          python3 scripts/publish_region.py \
             --slug brazil --display-name Brazil --tag brazil-v2026.09.16 \
-            --geofabrik-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
+            --valhalla-tar /tmp/fake-input/valhalla_tiles.tar \
+            --valhalla-manifest /tmp/fake-input/valhalla-manifest.json \
+            --streets-db /tmp/fake-input/streets.sqlite \
+            --streets-manifest /tmp/fake-input/streets-manifest.json \
+            --built-at-ms 1750000000000 \
+            --source-pbf brazil-latest.osm.pbf \
+            --source-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
             --out /tmp/fake-dist/single
           python3 scripts/verify_release.py --dir /tmp/fake-dist/single --deep
-          python3 scripts/publish_region.py --region-dir /tmp/fake-region/brazil \
+          python3 scripts/publish_region.py \
             --slug brazil --display-name Brazil --tag brazil-v2026.09.17 \
-            --geofabrik-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
+            --valhalla-tar /tmp/fake-input/valhalla_tiles.tar \
+            --valhalla-manifest /tmp/fake-input/valhalla-manifest.json \
+            --streets-db /tmp/fake-input/streets.sqlite \
+            --streets-manifest /tmp/fake-input/streets-manifest.json \
+            --built-at-ms 1750000000000 \
+            --source-pbf brazil-latest.osm.pbf \
+            --source-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
             --out /tmp/fake-dist/split --split-above 500 --part-size 500
           python3 scripts/verify_release.py --dir /tmp/fake-dist/split --deep
           python3 - <<'EOF'

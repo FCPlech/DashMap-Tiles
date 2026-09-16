@@ -16,7 +16,7 @@
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9_/-]*$",
-            "description": "Geofabrik region id, same slug as tools/map_build/regions/<slug>/ in DashMap."
+            "description": "Short region id (e.g. brazil). Lower-case, filesystem-safe."
           },
           "displayName": { "type": "string" },
           "latest": {
