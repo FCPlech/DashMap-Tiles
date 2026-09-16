@@ -23,6 +23,16 @@
       "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-centro-oeste/release-manifest.json"
     },
     {
+      "slug": "india",
+      "displayName": "IN-India",
+      "countryCode": "IN",
+      "countryName": "India",
+      "latest": "IN-india",
+      "builtAtMs": 1789599284812,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/IN-india",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/IN-india/release-manifest.json"
+    },
+    {
       "slug": "nordeste",
       "displayName": "BR-Nordeste",
       "countryCode": "BR",
