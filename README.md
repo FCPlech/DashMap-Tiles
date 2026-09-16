@@ -80,14 +80,14 @@ needs at runtime**. It lists every region and its latest release:
 ```json
 {
   "schema": 1,
-  "indexUrl": "https://raw.githubusercontent.com/<org>/DashMap-Tiles/main/tiles-index.json",
+  "indexUrl": "https://raw.githubusercontent.com/FCPlech/DashMap-Tiles/main/tiles-index.json",
   "regions": [
     {
       "slug": "brazil",
       "displayName": "Brazil",
       "latest": "brazil-v2026.09.16",
-      "releaseUrl": "https://github.com/<org>/DashMap-Tiles/releases/tag/brazil-v2026.09.16",
-      "manifestUrl": "https://github.com/<org>/DashMap-Tiles/releases/download/brazil-v2026.09.16/release-manifest.json"
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/brazil-v2026.09.16",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/brazil-v2026.09.16/release-manifest.json"
     }
   ]
 }

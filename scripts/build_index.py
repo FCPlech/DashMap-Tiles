@@ -3,7 +3,7 @@
 
 Usage:
     ./scripts/build_index.py --slug brazil --display-name Brazil \\
-        --tag brazil-v2026.09.16 --repo <org>/DashMap-Tiles
+        --tag brazil-v2026.09.16 --repo FCPlech/DashMap-Tiles
 
 Reads the tag's release-manifest.json from the local staging dir (to confirm
 it exists and matches the tag) or just writes the index entry from flags with
@@ -28,7 +28,7 @@ def main() -> int:
     ap.add_argument("--slug", required=True)
     ap.add_argument("--display-name", required=True)
     ap.add_argument("--tag", required=True)
-    ap.add_argument("--repo", required=True, help="GitHub repo, e.g. <org>/DashMap-Tiles")
+    ap.add_argument("--repo", required=True, help="GitHub repo, e.g. FCPlech/DashMap-Tiles")
     ap.add_argument("--manifest", default=None,
                     help="local release-manifest.json to cross-check (default: dist/<tag>/release-manifest.json if present)")
     ap.add_argument("--no-manifest-check", action="store_true")

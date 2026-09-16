@@ -74,7 +74,7 @@ Asset list after upload should be exactly the staging dir contents
 
 ```bash
 ./scripts/build_index.py --slug brazil --display-name Brazil \
-  --tag brazil-v2026.09.16 --repo <org>/DashMap-Tiles
+  --tag brazil-v2026.09.16 --repo FCPlech/DashMap-Tiles
 git add tiles-index.json
 git commit -m "index: brazil → brazil-v2026.09.16"
 git push
