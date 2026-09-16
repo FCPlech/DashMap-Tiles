@@ -1,4 +1,4 @@
-# Release process — publishing one region
+# Release process: publishing one region
 
 Each region is an independent GitHub Release, tag `<slug>-vYYYY.MM.DD`
 (e.g. `brazil-v2026.09.16`). Regions never block each other: re-releasing
@@ -37,11 +37,11 @@ Brazil does not touch Argentina.
   --out dist/brazil-v2026.09.16
 ```
 
-This reads (never moves) the input files and packs one zip per dataset —
+This reads (never moves) the input files and packs one zip per dataset:
 `valhalla.zip` (with `valhalla_tiles.tar`, `manifest.json`, `valhalla.json`,
 `admin.sqlite`/`timezones.sqlite` when given) and `streets.zip` (with the
-database stored as `streets-brazil.sqlite`, plus `manifest.json`) —
-splitting a zip that would exceed GitHub's 2 GiB per-asset limit into
+database stored as `streets-brazil.sqlite`, plus `manifest.json`).
+A zip that would exceed GitHub's 2 GiB per-asset limit is split into
 `.part-aa/ab/...` chunks. It also writes `release-manifest.json` +
 `SHA256SUMS` into the staging dir. `--built-at-ms` should be the actual
 build date (defaults to now); `--source-pbf`/`--source-url` are free-text
@@ -55,14 +55,14 @@ provenance recorded in the manifest.
 ./scripts/verify_release.py --dir dist/brazil-v2026.09.16 --deep
 ```
 
-Must print `OK`. Fix anything it flags — never upload a release that does
+Must print `OK`. Fix anything it flags. Never upload a release that does
 not verify (the app trusts the manifest hashes on install).
 
 ## 3. Create the GitHub Release and upload
 
 ```bash
 gh release create brazil-v2026.09.16 \
-  --title "Brazil — 16 Sep 2026" \
+  --title "Brazil, 16 Sep 2026" \
   --notes "Offline routing + nearby streets for Brazil. OSM data © OpenStreetMap contributors (ODbL), via Geofabrik. See release-manifest.json for build provenance and SHA-256." \
   dist/brazil-v2026.09.16/*
 ```
@@ -80,7 +80,7 @@ git commit -m "index: brazil → brazil-v2026.09.16"
 git push
 ```
 
-The app discovers regions only through `tiles-index.json` — a release that
+The app discovers regions only through `tiles-index.json`. A release that
 is not indexed is invisible to it. Double-check the raw URL serves the new
 index afterwards.
 
@@ -95,14 +95,14 @@ index afterwards.
 
 ## Notes
 
-- **Re-releases:** same tag is immutable — if a published asset is bad,
+- **Re-releases:** same tag is immutable. If a published asset is bad,
   cut a new dated tag (`…-vYYYY.MM.DD` of the fix day), never
   `--clobber` over the old one. The index then moves to the new tag.
 - **Partial datasets:** a release may ship only Valhalla or only streets
   (the other section gets `"present": false`), but prefer shipping both.
-- **Staging dirs (`dist/`) are git-ignored** — only `tiles-index.json`,
+- **Staging dirs (`dist/`) are git-ignored**. Only `tiles-index.json`,
   scripts and docs are committed. The multi-GB files exist solely as
   Release assets.
 - **Never commit** `*.zip`, `*.tar`, `*.sqlite`, `*.pbf` or
-  `valhalla_tiles/` trees to this repo — `.gitignore` blocks them, CI also
+  `valhalla_tiles/` trees to this repo. `.gitignore` blocks them, and CI also
   checks.

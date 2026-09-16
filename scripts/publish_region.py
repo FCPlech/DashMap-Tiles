@@ -12,7 +12,7 @@ Each release hosts two independent datasets for one region:
   - Offline Routing (Valhalla tiles)
   - Nearby Streets (SQLite database)
 
-Input files are given explicitly — no directory layout is assumed:
+Input files are given explicitly, so no directory layout is assumed:
 
   --valhalla-tar FILE         routing tile tarball (dataset present iff given)
   --valhalla-manifest FILE    routing manifest.json
@@ -161,7 +161,7 @@ def main() -> int:
     ap.add_argument("--streets-manifest", default=None,
                     help="streets manifest file → stored as manifest.json")
     ap.add_argument("--built-at-ms", type=int, default=None,
-                    help="build timestamp (epoch ms); defaults to now — set it to the actual build date")
+                    help="build timestamp (epoch ms); defaults to now. Set it to the actual build date")
     ap.add_argument("--source-pbf", default="",
                     help="source extract filename, for provenance (free text)")
     ap.add_argument("--source-url", default="",
@@ -180,7 +180,7 @@ def main() -> int:
         return 1
     out.mkdir(parents=True, exist_ok=True)
 
-    # ── Valhalla members (exact on-device names — unzip straight into valhallaDir) ──
+    # Valhalla members use the exact on-device names, unzipped straight into valhallaDir.
     val_inputs = [
         (need_file(args.valhalla_tar, "--valhalla-tar"), "valhalla_tiles.tar"),
         (need_file(args.valhalla_manifest, "--valhalla-manifest"), "manifest.json"),
@@ -190,11 +190,11 @@ def main() -> int:
     ]
     val_members = [(p, arc) for p, arc in val_inputs if p is not None]
     if args.valhalla_tar is None and val_members:
-        print("ERROR: routing side files given without --valhalla-tar — "
+        print("ERROR: routing side files given without --valhalla-tar: "
               "the tile tarball is required for the dataset.", file=sys.stderr)
         return 1
 
-    # ── Streets members (exact on-device names — unzip straight into streetsDir).
+    # Streets members use the exact on-device names, unzipped straight into streetsDir.
     # Whatever the input db filename is, it is stored as streets-brazil.sqlite:
     # that is the filename the app reads, so no rename is needed on install.
     st_inputs = [
@@ -203,12 +203,12 @@ def main() -> int:
     ]
     st_members = [(p, arc) for p, arc in st_inputs if p is not None]
     if args.streets_db is None and st_members:
-        print("ERROR: --streets-manifest given without --streets-db — "
+        print("ERROR: --streets-manifest given without --streets-db: "
               "the database is required for the dataset.", file=sys.stderr)
         return 1
 
     if not val_members and not st_members:
-        print("ERROR: nothing to stage — give --valhalla-tar and/or --streets-db.", file=sys.stderr)
+        print("ERROR: nothing to stage. Give --valhalla-tar and/or --streets-db.", file=sys.stderr)
         return 1
 
     built_at = args.built_at_ms if args.built_at_ms is not None else int(time.time() * 1000)
@@ -239,8 +239,8 @@ def main() -> int:
         "valhalla": section("valhalla.zip", val_members),
         "streets": section("streets.zip", st_members),
         "install": {
-            # Fixed on-device locations the app extracts each zip into —
-            # member names already match, so extraction needs no renaming.
+            # Fixed on-device locations the app extracts each zip into.
+            # Member names already match, so extraction needs no renaming.
             "valhallaDir": "/sdcard/Android/data/com.dashmap.app/files/valhalla",
             "streetsDir": "/sdcard/Android/data/com.dashmap.app/files/offline_streets",
         },

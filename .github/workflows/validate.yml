@@ -51,7 +51,7 @@ jobs:
             echo "$tracked"
             exit 1
           fi
-          echo "no tracked map data — ok"
+          echo "no tracked map data: ok"
 
       # End-to-end packaging check on synthetic data: publish a fake region,
       # verify it (including the split + deep paths), and confirm each zip

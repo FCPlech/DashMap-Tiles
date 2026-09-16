@@ -3,17 +3,17 @@
 
 Checks:
   - required assets present (at least one dataset zip + release-manifest.json + SHA256SUMS)
-  - release-manifest.json shape (lightweight check, stdlib only — full schema
+  - release-manifest.json shape (lightweight check, stdlib only; full schema
     is in ../release-manifest.schema.json)
   - every file listed in the manifest exists with matching size + sha256
   - each single zip opens cleanly and its member list matches the manifest's
-    `contents` (exact on-device names — no rename needed on install)
+    `contents` (exact on-device names, so no rename is needed on install)
   - split zip parts (.zip.part-aa, ...) are a complete sequence, none
     missing/truncated, with no reassembled zip alongside
   - `--deep` additionally reassembles split zips in a temp dir and runs the
     same zip/member checks on them (plus a CRC pass over every member)
   - SHA256SUMS covers every staged file (except itself) and verifies
-  - no loose map-data files (.tar/.sqlite) outside the zips — the release
+  - no loose map-data files (.tar/.sqlite) outside the zips. The release
     ships zips only
   - no single asset >= 2 GiB (GitHub hard limit; publish_region.py splits at 1900 MiB)
   - tag naming convention <slug>-vYYYY.MM.DD
@@ -89,7 +89,7 @@ def main() -> int:
 
     for p in sorted(d.iterdir()):
         if p.is_file() and not ALLOWED_RE.match(p.name):
-            fail(f"unexpected file {p.name} — releases ship zips + manifest + SHA256SUMS only "
+            fail(f"unexpected file {p.name}: releases ship zips + manifest + SHA256SUMS only "
                  f"(no loose .tar/.sqlite)", errors)
 
     manifest_path = d / "release-manifest.json"
@@ -158,8 +158,8 @@ def main() -> int:
                 if seq != expected or len(files) < 2:
                     fail(f"{section}: split parts not a complete sequence (have {seq})", errors)
                 if (d / archive).exists():
-                    fail(f"{section}: both {archive}.part-* and reassembled {archive} staged — "
-                         f"ship one or the other", errors)
+                    fail(f"{section}: both {archive}.part-* and reassembled {archive} staged. "
+                         f"Ship one or the other", errors)
                 if args.deep and tmpdir is not None and not any(
                         e.startswith(f"{section}:") for e in errors):
                     reasm = tmpdir / archive
@@ -193,7 +193,7 @@ def main() -> int:
             elif sha256_of(p) != sums[p.name]:
                 fail(f"{p.name}: SHA256SUMS hash mismatch", errors)
             if p.stat().st_size >= GITHUB_MAX_ASSET:
-                fail(f"{p.name} is {p.stat().st_size} bytes — over GitHub's 2 GiB per-asset limit", errors)
+                fail(f"{p.name} is {p.stat().st_size} bytes, over GitHub's 2 GiB per-asset limit", errors)
     finally:
         if tmpdir is not None:
             shutil.rmtree(tmpdir, ignore_errors=True)
