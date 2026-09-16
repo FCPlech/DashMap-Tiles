@@ -1,7 +1,7 @@
 # Release process: publishing one region
 
-Each region is an independent GitHub Release, tag `<slug>-vYYYY.MM.DD`
-(e.g. `brazil-v2026.09.16`). Regions never block each other: re-releasing
+Each region is an independent GitHub Release, tag `<CC>-<slug>-vYYYY.MM.DD`
+(e.g. `BR-BR-brazil-v2026.09.16`). Regions never block each other: re-releasing
 Brazil does not touch Argentina.
 
 ## Prerequisites
@@ -23,7 +23,7 @@ Brazil does not touch Argentina.
 ./scripts/publish_region.py \
   --slug brazil \
   --display-name Brazil \
-  --tag brazil-v2026.09.16 \
+  --tag BR-brazil-v2026.09.16 \
   --valhalla-tar valhalla_tiles.tar \
   --valhalla-manifest manifest.json \
   --valhalla-config valhalla.json \
@@ -34,7 +34,7 @@ Brazil does not touch Argentina.
   --built-at-ms 1750000000000 \
   --source-pbf brazil-latest.osm.pbf \
   --source-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
-  --out dist/brazil-v2026.09.16
+  --out build/BR-brazil-v2026.09.16
 ```
 
 This reads (never moves) the input files and packs one zip per dataset:
@@ -50,9 +50,9 @@ provenance recorded in the manifest.
 ## 2. Validate
 
 ```bash
-./scripts/verify_release.py --dir dist/brazil-v2026.09.16
+./scripts/verify_release.py --dir build/BR-brazil-v2026.09.16
 # for split zips, also run the deep pass (reassembles + CRC-checks):
-./scripts/verify_release.py --dir dist/brazil-v2026.09.16 --deep
+./scripts/verify_release.py --dir build/BR-brazil-v2026.09.16 --deep
 ```
 
 Must print `OK`. Fix anything it flags. Never upload a release that does
@@ -61,22 +61,22 @@ not verify (the app trusts the manifest hashes on install).
 ## 3. Create the GitHub Release and upload
 
 ```bash
-gh release create brazil-v2026.09.16 \
+gh release create BR-brazil-v2026.09.16 \
   --title "Brazil, 16 Sep 2026" \
   --notes "Offline routing + nearby streets for Brazil. OSM data © OpenStreetMap contributors (ODbL), via Geofabrik. See release-manifest.json for build provenance and SHA-256." \
-  dist/brazil-v2026.09.16/*
+  build/BR-brazil-v2026.09.16/*
 ```
 
 Asset list after upload should be exactly the staging dir contents
-(`gh release view brazil-v2026.09.16 --json assets --jq '.assets[].name'`).
+(`gh release view BR-brazil-v2026.09.16 --json assets --jq '.assets[].name'`).
 
 ## 4. Point the index at the new release
 
 ```bash
 ./scripts/build_index.py --slug brazil --display-name Brazil \
-  --tag brazil-v2026.09.16 --repo FCPlech/DashMap-Tiles
+  --tag BR-brazil-v2026.09.16 --repo FCPlech/DashMap-Tiles
 git add tiles-index.json
-git commit -m "index: brazil → brazil-v2026.09.16"
+git commit -m "index: brazil → BR-brazil-v2026.09.16"
 git push
 ```
 
@@ -100,7 +100,7 @@ index afterwards.
   `--clobber` over the old one. The index then moves to the new tag.
 - **Partial datasets:** a release may ship only Valhalla or only streets
   (the other section gets `"present": false`), but prefer shipping both.
-- **Staging dirs (`dist/`) are git-ignored**. Only `tiles-index.json`,
+- **Staging dirs (`build/<tag>/`) are git-ignored**. Only `tiles-index.json`,
   scripts and docs are committed. The multi-GB files exist solely as
   Release assets.
 - **Never commit** `*.zip`, `*.tar`, `*.sqlite`, `*.pbf` or
