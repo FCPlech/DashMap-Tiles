@@ -37,7 +37,9 @@ import zipfile
 from pathlib import Path
 
 GITHUB_MAX_ASSET = 2 * 1024 * 1024 * 1024
-TAG_RE = re.compile(r"^.+-v\d{4}\.\d{2}\.\d{2}$")
+# Stable per-region tag: ISO country code + slug (e.g. BR-sul). Rebuilds reuse
+# the same tag and replace the release; the date lives in builtAtMs instead.
+TAG_RE = re.compile(r"^[A-Z]{2}-[A-Za-z0-9][A-Za-z0-9/_.-]*$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 # Only these basenames may sit in a release dir: anything else (notably loose
 # .tar/.sqlite map data) means the staging leaked unpackaged files.
@@ -114,7 +116,7 @@ def main() -> int:
     if m.get("schema") != 1:
         fail(f"manifest schema must be 1, got {m.get('schema')!r}", errors)
     if not TAG_RE.match(str(m.get("tag", ""))):
-        fail(f"tag {m.get('tag')!r} does not match <slug>-vYYYY.MM.DD", errors)
+        fail(f"tag {m.get('tag')!r} does not match <CC>-<slug> (e.g. BR-sul)", errors)
     if isinstance(m.get("builtAtMs"), bool) or not isinstance(m.get("builtAtMs"), int):
         fail("builtAtMs must be an integer (epoch ms)", errors)
 

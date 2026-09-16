@@ -26,9 +26,10 @@ that path never touches this repo.
 
 ## Release convention
 
-- **One release per region.** Tag format: `<CC>-<slug>-vYYYY.MM.DD`
-  (e.g. `BR-brazil-v2026.09.16`, `BR-sul-v2026.09.16`), with the ISO country
-  code up front.
+- **One release per region, replaced on rebuild.** Tag format: `<CC>-<slug>`
+  (e.g. `BR-brazil`, `BR-sul`), stable forever: rebuilding a region replaces
+  the same release instead of adding a new one. Freshness lives in the
+  manifest's `builtAtMs`, the release title, and the index entry.
   The slug is a short region id (e.g. the Geofabrik extract id the files
   were built from), lower-case, filesystem-safe. The display name carries an
   ISO country prefix (e.g. BR-Sul, BR-Brazil) so regions from different
@@ -92,9 +93,10 @@ needs at runtime**. It lists every region and its latest release:
     {
       "slug": "brazil",
       "displayName": "BR-Brazil",
-      "latest": "BR-brazil-v2026.09.16",
-      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-brazil-v2026.09.16",
-      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-brazil-v2026.09.16/release-manifest.json"
+      "latest": "BR-brazil",
+      "builtAtMs": 1750000000000,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-brazil",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-brazil/release-manifest.json"
     }
   ]
 }

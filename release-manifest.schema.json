@@ -8,7 +8,11 @@
     "schema": { "const": 1 },
     "slug": { "type": "string" },
     "displayName": { "type": "string" },
-    "tag": { "type": "string" },
+    "tag": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}-[A-Za-z0-9][A-Za-z0-9/_.-]*$",
+      "description": "Stable per-region tag (<CC>-<slug>, e.g. BR-sul). Rebuilds reuse it."
+    },
     "builtAtMs": { "type": "integer" },
     "source": {
       "type": "object",

@@ -1,8 +1,9 @@
 # Release process: publishing one region
 
-Each region is an independent GitHub Release, tag `<CC>-<slug>-vYYYY.MM.DD`
-(e.g. `BR-BR-brazil-v2026.09.16`). Regions never block each other: re-releasing
-Brazil does not touch Argentina.
+Each region owns one stable GitHub Release, tag `<CC>-<slug>` (e.g. `BR-brazil`).
+Rebuilding a region replaces that same release instead of adding a new one;
+freshness is recorded in the manifest's `builtAtMs` and the release title.
+Regions never block each other: republishing Brazil does not touch Argentina.
 
 ## Prerequisites
 
@@ -22,8 +23,8 @@ Brazil does not touch Argentina.
 # from this repo root:
 ./scripts/publish_region.py \
   --slug brazil \
-  --display-name Brazil \
-  --tag BR-brazil-v2026.09.16 \
+  --display-name BR-Brazil \
+  --tag BR-brazil \
   --valhalla-tar valhalla_tiles.tar \
   --valhalla-manifest manifest.json \
   --valhalla-config valhalla.json \
@@ -34,7 +35,7 @@ Brazil does not touch Argentina.
   --built-at-ms 1750000000000 \
   --source-pbf brazil-latest.osm.pbf \
   --source-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
-  --out build/BR-brazil-v2026.09.16
+  --out build/BR-brazil
 ```
 
 This reads (never moves) the input files and packs one zip per dataset:
@@ -50,33 +51,33 @@ provenance recorded in the manifest.
 ## 2. Validate
 
 ```bash
-./scripts/verify_release.py --dir build/BR-brazil-v2026.09.16
+./scripts/verify_release.py --dir build/BR-brazil
 # for split zips, also run the deep pass (reassembles + CRC-checks):
-./scripts/verify_release.py --dir build/BR-brazil-v2026.09.16 --deep
+./scripts/verify_release.py --dir build/BR-brazil --deep
 ```
 
 Must print `OK`. Fix anything it flags. Never upload a release that does
 not verify (the app trusts the manifest hashes on install).
 
-## 3. Create the GitHub Release and upload
+## 3. Publish (create or replace the release)
 
 ```bash
-gh release create BR-brazil-v2026.09.16 \
-  --title "Brazil, 16 Sep 2026" \
-  --notes "Offline routing + nearby streets for Brazil. OSM data © OpenStreetMap contributors (ODbL), via Geofabrik. See release-manifest.json for build provenance and SHA-256." \
-  build/BR-brazil-v2026.09.16/*
+./scripts/publish_release.py --dir build/BR-brazil
 ```
 
-Asset list after upload should be exactly the staging dir contents
-(`gh release view BR-brazil-v2026.09.16 --json assets --jq '.assets[].name'`).
+Creates the release when the tag is new, otherwise replaces its assets in
+place (stale files removed, current ones uploaded, title and notes
+refreshed with the new build date). Asset list after upload should be
+exactly the staging dir contents
+(`gh release view BR-brazil --json assets --jq '.assets[].name'`).
 
 ## 4. Point the index at the new release
 
 ```bash
-./scripts/build_index.py --slug brazil --display-name Brazil \
-  --tag BR-brazil-v2026.09.16 --repo FCPlech/DashMap-Tiles
+./scripts/build_index.py --slug brazil --display-name BR-Brazil \
+  --tag BR-brazil --repo FCPlech/DashMap-Tiles
 git add tiles-index.json
-git commit -m "index: brazil → BR-brazil-v2026.09.16"
+git commit -m "index: BR-brazil rebuild"
 git push
 ```
 
@@ -95,9 +96,10 @@ index afterwards.
 
 ## Notes
 
-- **Re-releases:** same tag is immutable. If a published asset is bad,
-  cut a new dated tag (`…-vYYYY.MM.DD` of the fix day), never
-  `--clobber` over the old one. The index then moves to the new tag.
+- **Rebuilds reuse the tag.** If a published asset is bad, fix the staging
+  and run `publish_release.py` again: it replaces the assets on the same
+  release. The tag itself never changes; only `builtAtMs`, the title, and
+  the index move forward.
 - **Partial datasets:** a release may ship only Valhalla or only streets
   (the other section gets `"present": false`), but prefer shipping both.
 - **Staging dirs (`build/<tag>/`) are git-ignored**. Only `tiles-index.json`,

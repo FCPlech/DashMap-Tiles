@@ -29,16 +29,16 @@ jobs:
           python3 -m py_compile scripts/publish_region.py scripts/verify_release.py scripts/build_index.py
           echo "scripts compile ok"
 
-      - name: Index entries match <slug>-vYYYY.MM.DD convention
+      - name: Index entries match <CC>-<slug> convention
         run: |
           python3 - <<'EOF'
           import json, re, sys
           index = json.load(open('tiles-index.json'))
           assert index.get('schema') == 1, 'index schema must be 1'
           bad = [r for r in index.get('regions', [])
-                 if not re.match(r'^.+-v\d{4}\.\d{2}\.\d{2}$', r.get('latest', ''))]
+                 if not re.match(r'^[A-Z]{2}-[A-Za-z0-9][A-Za-z0-9/_.-]*$', r.get('latest', ''))]
           if bad:
-              print('FAIL: index entries not matching <slug>-vYYYY.MM.DD:', bad)
+              print('FAIL: index entries not matching <CC>-<slug>:', bad)
               sys.exit(1)
           print(f"index ok ({len(index.get('regions', []))} regions)")
           EOF
@@ -71,7 +71,7 @@ jobs:
               {"region": "Brazil", "builtAtMs": 1750000000000}))
           EOF
           python3 scripts/publish_region.py \
-            --slug brazil --display-name Brazil --tag brazil-v2026.09.16 \
+            --slug test --display-name BR-Test --tag BR-test \
             --valhalla-tar /tmp/fake-input/valhalla_tiles.tar \
             --valhalla-manifest /tmp/fake-input/valhalla-manifest.json \
             --streets-db /tmp/fake-input/streets.sqlite \
@@ -82,7 +82,7 @@ jobs:
             --out /tmp/fake-dist/single
           python3 scripts/verify_release.py --dir /tmp/fake-dist/single --deep
           python3 scripts/publish_region.py \
-            --slug brazil --display-name Brazil --tag brazil-v2026.09.17 \
+            --slug test --display-name BR-Test --tag BR-test-split \
             --valhalla-tar /tmp/fake-input/valhalla_tiles.tar \
             --valhalla-manifest /tmp/fake-input/valhalla-manifest.json \
             --streets-db /tmp/fake-input/streets.sqlite \

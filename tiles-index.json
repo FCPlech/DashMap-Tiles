@@ -5,44 +5,50 @@
     {
       "slug": "brazil",
       "displayName": "BR-Brazil",
-      "latest": "BR-brazil-v2026.09.16",
-      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-brazil-v2026.09.16",
-      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-brazil-v2026.09.16/release-manifest.json"
+      "latest": "BR-brazil",
+      "builtAtMs": 1789571433213,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-brazil",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-brazil/release-manifest.json"
     },
     {
       "slug": "centro-oeste",
       "displayName": "BR-Centro-Oeste",
-      "latest": "BR-centro-oeste-v2026.09.16",
-      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-centro-oeste-v2026.09.16",
-      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-centro-oeste-v2026.09.16/release-manifest.json"
+      "latest": "BR-centro-oeste",
+      "builtAtMs": 1789569919185,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-centro-oeste",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-centro-oeste/release-manifest.json"
     },
     {
       "slug": "nordeste",
       "displayName": "BR-Nordeste",
-      "latest": "BR-nordeste-v2026.09.16",
-      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-nordeste-v2026.09.16",
-      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-nordeste-v2026.09.16/release-manifest.json"
+      "latest": "BR-nordeste",
+      "builtAtMs": 1789570323034,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-nordeste",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-nordeste/release-manifest.json"
     },
     {
       "slug": "norte",
       "displayName": "BR-Norte",
-      "latest": "BR-norte-v2026.09.16",
-      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-norte-v2026.09.16",
-      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-norte-v2026.09.16/release-manifest.json"
+      "latest": "BR-norte",
+      "builtAtMs": 1789569827290,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-norte",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-norte/release-manifest.json"
     },
     {
       "slug": "sudeste",
       "displayName": "BR-Sudeste",
-      "latest": "BR-sudeste-v2026.09.16",
-      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-sudeste-v2026.09.16",
-      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-sudeste-v2026.09.16/release-manifest.json"
+      "latest": "BR-sudeste",
+      "builtAtMs": 1789570665205,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-sudeste",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-sudeste/release-manifest.json"
     },
     {
       "slug": "sul",
       "displayName": "BR-Sul",
-      "latest": "BR-sul-v2026.09.16",
-      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-sul-v2026.09.16",
-      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-sul-v2026.09.16/release-manifest.json"
+      "latest": "BR-sul",
+      "builtAtMs": 1789570086073,
+      "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-sul",
+      "manifestUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/download/BR-sul/release-manifest.json"
     }
   ]
 }

@@ -11,7 +11,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["slug", "displayName", "latest", "releaseUrl", "manifestUrl"],
+        "required": ["slug", "displayName", "latest", "builtAtMs", "releaseUrl", "manifestUrl"],
         "properties": {
           "slug": {
             "type": "string",
@@ -21,8 +21,12 @@
           "displayName": { "type": "string" },
           "latest": {
             "type": "string",
-            "pattern": "^.+(-v[0-9]{4}\\.[0-9]{2}\\.[0-9]{2})$",
-            "description": "Release tag, convention <slug>-vYYYY.MM.DD."
+            "pattern": "^[A-Z]{2}-[A-Za-z0-9][A-Za-z0-9/_.-]*$",
+            "description": "Release tag, convention <CC>-<slug> (stable per region, e.g. BR-sul)."
+          },
+          "builtAtMs": {
+            "type": "integer",
+            "description": "Build timestamp of the currently published release (epoch ms, from its manifest). Lets the app show freshness without fetching every manifest."
           },
           "releaseUrl": { "type": "string" },
           "manifestUrl": { "type": "string" }

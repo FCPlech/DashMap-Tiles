@@ -2,13 +2,14 @@
 """Add/update one region entry in tiles-index.json after publishing a release.
 
 Usage:
-    ./scripts/build_index.py --slug brazil --display-name Brazil \\
-        --tag brazil-v2026.09.16 --repo FCPlech/DashMap-Tiles
+    ./scripts/build_index.py --slug sul --display-name BR-Sul \\
+        --tag BR-sul --repo FCPlech/DashMap-Tiles
 
 Reads the tag's release-manifest.json from the local staging dir (to confirm
 it exists and matches the tag) or just writes the index entry from flags with
---no-manifest-check. Keeps regions sorted by slug, replaces the entry for the
-same slug in place.
+--no-manifest-check. The entry's builtAtMs comes from the manifest when
+readable, else the previous entry keeps its value. Keeps regions sorted by
+slug, replaces the entry for the same slug in place.
 
 Stdlib only.
 """
@@ -30,11 +31,12 @@ def main() -> int:
     ap.add_argument("--tag", required=True)
     ap.add_argument("--repo", required=True, help="GitHub repo, e.g. FCPlech/DashMap-Tiles")
     ap.add_argument("--manifest", default=None,
-                    help="local release-manifest.json to cross-check (default: dist/<tag>/release-manifest.json if present)")
+                    help="local release-manifest.json to cross-check (default: build/<tag>/release-manifest.json if present)")
     ap.add_argument("--no-manifest-check", action="store_true")
     args = ap.parse_args()
 
-    manifest_path = Path(args.manifest) if args.manifest else (ROOT / "dist" / args.tag / "release-manifest.json")
+    manifest_path = Path(args.manifest) if args.manifest else (ROOT / "build" / args.tag / "release-manifest.json")
+    manifest_built_at = 0
     if not args.no_manifest_check:
         if not manifest_path.exists():
             print(f"ERROR: manifest not found at {manifest_path} (pass --no-manifest-check to skip).",
@@ -49,6 +51,8 @@ def main() -> int:
             print(f"ERROR: manifest tag/slug ({m.get('slug')}/{m.get('tag')}) "
                   f"does not match flags ({args.slug}/{args.tag}).", file=sys.stderr)
             return 1
+        if isinstance(m.get("builtAtMs"), int):
+            manifest_built_at = m["builtAtMs"]
 
     try:
         index = json.loads(INDEX.read_text())
@@ -56,10 +60,12 @@ def main() -> int:
         print(f"ERROR: cannot read {INDEX}: {e}", file=sys.stderr)
         return 1
 
+    previous = next((r for r in index.get("regions", []) if r.get("slug") == args.slug), {})
     entry = {
         "slug": args.slug,
         "displayName": args.display_name,
         "latest": args.tag,
+        "builtAtMs": manifest_built_at or previous.get("builtAtMs", 0),
         "releaseUrl": f"https://github.com/{args.repo}/releases/tag/{args.tag}",
         "manifestUrl": f"https://github.com/{args.repo}/releases/download/{args.tag}/release-manifest.json",
     }
