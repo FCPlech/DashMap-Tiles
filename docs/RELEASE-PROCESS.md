@@ -25,15 +25,19 @@ Brazil does not touch Argentina.
   --out dist/brazil-v2026.09.16
 ```
 
-This copies (never moves) the build output, renames
-`streets-brazil.sqlite` → `streets.sqlite`, splits the Valhalla tar if it
-would exceed GitHub's 2 GiB per-asset limit, and writes
+This reads (never moves) the build output and packs one zip per dataset —
+`valhalla.zip` (with `valhalla_tiles.tar`, `manifest.json`, `valhalla.json`,
+`admin.sqlite`/`timezones.sqlite` when built) and `streets.zip` (with
+`streets-brazil.sqlite`, `manifest.json`) — splitting a zip that would exceed
+GitHub's 2 GiB per-asset limit into `.part-aa/ab/...` chunks. It also writes
 `release-manifest.json` + `SHA256SUMS` into the staging dir.
 
 ## 2. Validate
 
 ```bash
 ./scripts/verify_release.py --dir dist/brazil-v2026.09.16
+# for split zips, also run the deep pass (reassembles + CRC-checks):
+./scripts/verify_release.py --dir dist/brazil-v2026.09.16 --deep
 ```
 
 Must print `OK`. Fix anything it flags — never upload a release that does
@@ -68,9 +72,11 @@ index afterwards.
 ## 5. Smoke-test (recommended)
 
 - Download `release-manifest.json` from the release URL and re-run
-  `verify_release.py` against a fresh download of the assets.
-- Confirm the app's future downloader (or a manual `cat` + `sha256sum -c`)
-  reassembles and verifies the tar, including the split-parts case.
+  `verify_release.py --deep` against a fresh download of the assets.
+- Confirm the app's future downloader (or manually:
+  `cat valhalla.zip.part-* > valhalla.zip` + `sha256sum -c SHA256SUMS` +
+  `unzip -t valhalla.zip`) reassembles, verifies and extracts,
+  including the split-parts case.
 
 ## Notes
 
@@ -82,5 +88,6 @@ index afterwards.
 - **Staging dirs (`dist/`) are git-ignored** — only `tiles-index.json`,
   scripts and docs are committed. The multi-GB files exist solely as
   Release assets.
-- **Never commit** `*.tar`, `*.sqlite`, `*.pbf` or `valhalla_tiles/` trees
-  to this repo — `.gitignore` blocks them, CI also checks.
+- **Never commit** `*.zip`, `*.tar`, `*.sqlite`, `*.pbf` or
+  `valhalla_tiles/` trees to this repo — `.gitignore` blocks them, CI also
+  checks.

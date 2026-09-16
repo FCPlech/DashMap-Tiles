@@ -45,10 +45,58 @@ jobs:
 
       - name: No map data tracked in git
         run: |
-          tracked=$(git ls-files | grep -Ei '\.(tar|sqlite|osm\.pbf|osm\.bz2|gph)$' || true)
+          tracked=$(git ls-files | grep -Ei '\.(zip|tar|sqlite|osm\.pbf|osm\.bz2|gph)$' || true)
           if [ -n "$tracked" ]; then
             echo "FAIL: map data files must never be committed (use Release assets):"
             echo "$tracked"
             exit 1
           fi
           echo "no tracked map data — ok"
+
+      # End-to-end packaging check on synthetic data: publish a fake region,
+      # verify it (including the split + deep paths), and confirm each zip
+      # extracts to the exact on-device filenames.
+      - name: Packaging round-trip (fake region)
+        run: |
+          python3 - <<'EOF'
+          import json
+          from pathlib import Path
+          reg = Path('/tmp/fake-region/brazil')
+          (reg / 'valhalla').mkdir(parents=True, exist_ok=True)
+          (reg / 'streets').mkdir(parents=True, exist_ok=True)
+          (reg / 'valhalla' / 'valhalla_tiles.tar').write_bytes(b'fake-tar' * 100)
+          (reg / 'valhalla' / 'manifest.json').write_text(json.dumps(
+              {"region": "Brazil", "builtAtMs": 1750000000000,
+               "valhallaVersion": "test", "sourceFile": "brazil-latest.osm.pbf"}))
+          (reg / 'streets' / 'streets-brazil.sqlite').write_bytes(b'fake-db')
+          (reg / 'streets' / 'streets-manifest.json').write_text(json.dumps(
+              {"region": "Brazil", "builtAtMs": 1750000000000,
+               "sourceFile": "brazil-latest.osm.pbf"}))
+          EOF
+          python3 scripts/publish_region.py --region-dir /tmp/fake-region/brazil \
+            --slug brazil --display-name Brazil --tag brazil-v2026.09.16 \
+            --geofabrik-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
+            --out /tmp/fake-dist/single
+          python3 scripts/verify_release.py --dir /tmp/fake-dist/single --deep
+          python3 scripts/publish_region.py --region-dir /tmp/fake-region/brazil \
+            --slug brazil --display-name Brazil --tag brazil-v2026.09.17 \
+            --geofabrik-url https://download.geofabrik.de/south-america/brazil-latest.osm.pbf \
+            --out /tmp/fake-dist/split --split-above 500 --part-size 500
+          python3 scripts/verify_release.py --dir /tmp/fake-dist/split --deep
+          python3 - <<'EOF'
+          import tempfile, zipfile
+          from pathlib import Path
+          # single zip must extract to exact on-device names
+          with tempfile.TemporaryDirectory() as t:
+              with zipfile.ZipFile('/tmp/fake-dist/single/valhalla.zip') as z:
+                  z.extractall(t)
+              names = sorted(p.name for p in Path(t).iterdir())
+              assert 'valhalla_tiles.tar' in names and 'manifest.json' in names, names
+              print('valhalla.zip members ok:', names)
+          with tempfile.TemporaryDirectory() as t:
+              with zipfile.ZipFile('/tmp/fake-dist/single/streets.zip') as z:
+                  z.extractall(t)
+              names = sorted(p.name for p in Path(t).iterdir())
+              assert names == ['manifest.json', 'streets-brazil.sqlite'], names
+              print('streets.zip members ok:', names)
+          EOF

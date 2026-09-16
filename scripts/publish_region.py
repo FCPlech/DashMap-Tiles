@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Stage a locally-built DashMap offline region into GitHub Release assets.
+"""Stage a locally-built DashMap offline region into zipped GitHub Release assets.
 
 Reads the per-region archive produced by the DashMap desktop tool
 (`tools/update_offline_data.py` → `tools/map_build/regions/<slug>/`) and
-copies it into a clean staging dir with the STABLE asset names the app
-expects, plus a generated `release-manifest.json` and `SHA256SUMS`.
+packs it into a clean staging dir as one zip per dataset, plus a generated
+`release-manifest.json` and `SHA256SUMS`.
+
+This script does NOT build maps — building happens in the DashMap repo
+(Docker + osmium via its offline-maps tool). It only packages a region that
+is already built.
 
 Source layout (DashMap repo, never modified, only read):
 
@@ -19,19 +23,23 @@ Source layout (DashMap repo, never modified, only read):
 
 Staged output (<out-dir>/):
 
-    valhalla_tiles.tar  (or valhalla_tiles.tar.part-aa/ab/... when split)
-    valhalla_manifest.json
-    valhalla.json
-    admin.sqlite               (if present in source)
-    timezones.sqlite           (if present in source)
-    streets.sqlite             (renamed from streets-brazil.sqlite)
-    streets_manifest.json
+    valhalla.zip               (or valhalla.zip.part-aa/ab/... when split)
+    streets.zip                (or streets.zip.part-aa/ab/... when split)
     release-manifest.json      (schema: ../release-manifest.schema.json)
     SHA256SUMS
 
-GitHub rejects release assets over 2 GB, so tars >= --split-above are split
-into --part-size chunks with `split -b` naming (.part-aa, .part-ab, ...).
-Reassembly is `cat valhalla_tiles.tar.part-* > valhalla_tiles.tar`.
+Each zip contains the EXACT on-device filenames, so the app (or a manual
+`unzip`) extracts straight into the target dir with no renaming:
+
+    valhalla.zip  →  valhalla_tiles.tar, manifest.json, valhalla.json,
+                     admin.sqlite?, timezones.sqlite?
+                     (installs into …/files/valhalla/)
+    streets.zip   →  streets-brazil.sqlite, manifest.json
+                     (installs into …/files/offline_streets/)
+
+GitHub rejects release assets over 2 GB, so zips >= --split-above are split
+into --part-size chunks (`split -b` style naming: .part-aa, .part-ab, ...).
+Reassembly is `cat valhalla.zip.part-* > valhalla.zip`, then `unzip`.
 
 Usage:
     ./scripts/publish_region.py --region-dir ~/DashMap/tools/map_build/regions/brazil \\
@@ -50,9 +58,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import shutil
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 ATTRIBUTION = "Map data © OpenStreetMap contributors · Open Database License (ODbL)."
@@ -61,8 +69,6 @@ ATTRIBUTION = "Map data © OpenStreetMap contributors · Open Database License (
 DEFAULT_SPLIT_ABOVE = 1900 * 1024 * 1024
 DEFAULT_PART_SIZE = 1500 * 1024 * 1024
 
-VALHALLA_FILES = ("valhalla_tiles.tar", "manifest.json", "valhalla.json",
-                  "admin.sqlite", "timezones.sqlite")
 STREETS_DB_NAMES = ("streets-brazil.sqlite", "streets.sqlite")
 
 
@@ -72,6 +78,16 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: f.read(8 * 1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def make_zip(members: list[tuple[Path, str]], zip_path: Path, log=print) -> None:
+    """Pack (source path, archive name) pairs into zip_path (deflated, Zip64)."""
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6,
+                         allowZip64=True) as z:
+        for src, arc in members:
+            z.write(src, arc)
+    log(f"packed {zip_path.name} ({zip_path.stat().st_size} bytes, "
+        f"{len(members)} files)")
 
 
 def split_file(path: Path, part_size: int, log=print) -> list[Path]:
@@ -84,7 +100,7 @@ def split_file(path: Path, part_size: int, log=print) -> list[Path]:
             buf = f.read(part_size)
             if not buf:
                 break
-            # aa, ab, ..., az, ba, ... (enough for any realistic tile tar)
+            # aa, ab, ..., az, ba, ... (enough for any realistic region zip)
             suffix = chr(ord("a") + idx // 26) + chr(ord("a") + idx % 26)
             part = path.parent / f"{path.name}.part-{suffix}"
             part.write_bytes(buf)
@@ -92,6 +108,21 @@ def split_file(path: Path, part_size: int, log=print) -> list[Path]:
             idx += 1
     log(f"split {path.name} ({data_size} bytes) into {len(parts)} parts")
     return parts
+
+
+def pack_dataset(members: list[tuple[Path, str]], archive_name: str, out: Path,
+                 split_above: int, part_size: int) -> tuple[list[Path], str, list[str]]:
+    """Zip members as out/<archive_name>, splitting when over the limit.
+
+    Returns (staged files, packaging, zip member names)."""
+    zip_path = out / archive_name
+    make_zip(members, zip_path)
+    contents = [arc for _, arc in members]
+    if zip_path.stat().st_size >= split_above:
+        parts = split_file(zip_path, part_size)
+        zip_path.unlink()
+        return parts, "split", contents
+    return [zip_path], "single", contents
 
 
 def read_json(path: Path) -> dict | None:
@@ -110,7 +141,7 @@ def main() -> int:
     ap.add_argument("--geofabrik-url", default="", help="source .osm.pbf URL for provenance")
     ap.add_argument("--out", required=True, help="staging output dir")
     ap.add_argument("--split-above", type=int, default=DEFAULT_SPLIT_ABOVE,
-                    help="split valhalla tar at/above this many bytes")
+                    help="split a dataset zip at/above this many bytes")
     ap.add_argument("--part-size", type=int, default=DEFAULT_PART_SIZE,
                     help="bytes per split part")
     args = ap.parse_args()
@@ -134,49 +165,41 @@ def main() -> int:
     pbf_file = str(val_manifest.get("sourceFile") or st_manifest.get("sourceFile") or "")
     valhalla_version = str(val_manifest.get("valhallaVersion") or "")
 
-    staged_valhalla: list[Path] = []
-    staged_streets: list[Path] = []
-
-    # ── Valhalla ──
-    tar = val_dir / "valhalla_tiles.tar"
-    if tar.exists():
-        shutil.copy2(tar, out / "valhalla_tiles.tar")
-        if (out / "valhalla_tiles.tar").stat().st_size >= args.split_above:
-            parts = split_file(out / "valhalla_tiles.tar", args.part_size)
-            (out / "valhalla_tiles.tar").unlink()
-            staged_valhalla.extend(parts)
-            packaging = "split"
-        else:
-            staged_valhalla.append(out / "valhalla_tiles.tar")
-            packaging = "single"
-    else:
-        packaging = "single"
-
-    for name, asset in (("manifest.json", "valhalla_manifest.json"),
-                        ("valhalla.json", "valhalla.json"),
-                        ("admin.sqlite", "admin.sqlite"),
-                        ("timezones.sqlite", "timezones.sqlite")):
+    # ── Valhalla members (exact on-device names — unzip straight into valhallaDir) ──
+    val_members: list[tuple[Path, str]] = []
+    for name in ("valhalla_tiles.tar", "manifest.json", "valhalla.json",
+                 "admin.sqlite", "timezones.sqlite"):
         p = val_dir / name
         if p.exists():
-            shutil.copy2(p, out / asset)
-            staged_valhalla.append(out / asset)
+            val_members.append((p, name))
 
-    # ── Streets (builder filename is fixed; publish under the stable name) ──
+    # ── Streets members (exact on-device names — unzip straight into streetsDir).
+    # The builder's db filename is fixed (streets-brazil.sqlite) even for other
+    # regions, and that legacy name is what the app already reads — kept as-is
+    # inside the zip so no rename is needed on install.
+    st_members: list[tuple[Path, str]] = []
     db_src = next((st_dir / n for n in STREETS_DB_NAMES if (st_dir / n).exists()), None)
     if db_src is not None:
-        shutil.copy2(db_src, out / "streets.sqlite")
-        staged_streets.append(out / "streets.sqlite")
+        st_members.append((db_src, "streets-brazil.sqlite"))
     st_man = st_dir / "streets-manifest.json"
     if st_man.exists():
-        shutil.copy2(st_man, out / "streets_manifest.json")
-        staged_streets.append(out / "streets_manifest.json")
+        st_members.append((st_man, "manifest.json"))
 
-    if not staged_valhalla and not staged_streets:
+    if not val_members and not st_members:
         print("ERROR: nothing staged — source region dir has no recognizable dataset files.", file=sys.stderr)
         return 1
 
     def entry(p: Path) -> dict:
         return {"name": p.name, "size": p.stat().st_size, "sha256": sha256_of(p)}
+
+    def section(archive: str, members: list[tuple[Path, str]]) -> dict:
+        if not members:
+            return {"present": False, "packaging": "single", "archive": archive,
+                    "files": [], "contents": []}
+        staged, packaging, contents = pack_dataset(
+            members, archive, out, args.split_above, args.part_size)
+        return {"present": True, "packaging": packaging, "archive": archive,
+                "files": [entry(p) for p in staged], "contents": contents}
 
     manifest = {
         "schema": 1,
@@ -189,19 +212,11 @@ def main() -> int:
             "geofabrikUrl": args.geofabrik_url,
             "valhallaVersion": valhalla_version,
         },
-        "valhalla": {
-            "present": bool(staged_valhalla),
-            "packaging": packaging,
-            "files": [entry(p) for p in staged_valhalla],
-        },
-        "streets": {
-            "present": bool(staged_streets),
-            "files": [entry(p) for p in staged_streets],
-        },
+        "valhalla": section("valhalla.zip", val_members),
+        "streets": section("streets.zip", st_members),
         "install": {
-            # Mirrors update_offline_data.py DATASETS device paths. Note the device-side
-            # streets filename stays streets-brazil.sqlite (legacy name the app already
-            # reads) even though the release asset is streets.sqlite.
+            # Mirrors update_offline_data.py DATASETS device paths. Each zip
+            # extracts directly into its dir — member names already match.
             "valhallaDir": "/sdcard/Android/data/com.dashmap.app/files/valhalla",
             "streetsDir": "/sdcard/Android/data/com.dashmap.app/files/offline_streets",
         },

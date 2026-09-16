@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DashMap-Tiles per-release manifest",
-  "description": "release-manifest.json shipped as an asset inside every per-region GitHub Release. The app reads this to download + verify + install.",
+  "description": "release-manifest.json shipped as an asset inside every per-region GitHub Release. The app reads this to download + verify + unzip + install. Each dataset ships as one zip (split into .part-* when over GitHub's 2 GiB asset limit); the zip members carry the exact on-device filenames, so extraction goes straight into the install dir with no renaming.",
   "type": "object",
   "required": ["schema", "slug", "displayName", "tag", "builtAtMs", "source", "valhalla", "streets", "install", "attribution"],
   "properties": {
@@ -22,10 +22,15 @@
     },
     "valhalla": {
       "type": "object",
-      "required": ["present", "packaging", "files"],
+      "required": ["present", "packaging", "archive", "files", "contents"],
       "properties": {
         "present": { "type": "boolean" },
         "packaging": { "enum": ["single", "split"] },
+        "archive": {
+          "type": "string",
+          "pattern": "^[^/]+\\.zip$",
+          "description": "Dataset zip basename (valhalla.zip); split parts are <archive>.part-aa, ..."
+        },
         "files": {
           "type": "array",
           "items": {
@@ -38,15 +43,26 @@
             },
             "additionalProperties": false
           }
+        },
+        "contents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Exact member names inside the zip (on-device filenames)."
         }
       },
       "additionalProperties": false
     },
     "streets": {
       "type": "object",
-      "required": ["present", "files"],
+      "required": ["present", "packaging", "archive", "files", "contents"],
       "properties": {
         "present": { "type": "boolean" },
+        "packaging": { "enum": ["single", "split"] },
+        "archive": {
+          "type": "string",
+          "pattern": "^[^/]+\\.zip$",
+          "description": "Dataset zip basename (streets.zip); split parts are <archive>.part-aa, ..."
+        },
         "files": {
           "type": "array",
           "items": {
@@ -59,6 +75,11 @@
             },
             "additionalProperties": false
           }
+        },
+        "contents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Exact member names inside the zip (on-device filenames)."
         }
       },
       "additionalProperties": false

@@ -1,5 +1,7 @@
 # Release staging + big data live as GitHub Release assets, never in git.
 dist/
+*.zip
+*.zip.part-*
 *.tar
 *.tar.part-*
 *.sqlite
