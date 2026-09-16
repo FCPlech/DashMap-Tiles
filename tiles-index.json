@@ -5,6 +5,8 @@
     {
       "slug": "brazil",
       "displayName": "BR-Brazil",
+      "countryCode": "BR",
+      "countryName": "Brazil",
       "latest": "BR-brazil",
       "builtAtMs": 1789571433213,
       "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-brazil",
@@ -13,6 +15,8 @@
     {
       "slug": "centro-oeste",
       "displayName": "BR-Centro-Oeste",
+      "countryCode": "BR",
+      "countryName": "Brazil",
       "latest": "BR-centro-oeste",
       "builtAtMs": 1789569919185,
       "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-centro-oeste",
@@ -21,6 +25,8 @@
     {
       "slug": "nordeste",
       "displayName": "BR-Nordeste",
+      "countryCode": "BR",
+      "countryName": "Brazil",
       "latest": "BR-nordeste",
       "builtAtMs": 1789570323034,
       "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-nordeste",
@@ -29,6 +35,8 @@
     {
       "slug": "norte",
       "displayName": "BR-Norte",
+      "countryCode": "BR",
+      "countryName": "Brazil",
       "latest": "BR-norte",
       "builtAtMs": 1789569827290,
       "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-norte",
@@ -37,6 +45,8 @@
     {
       "slug": "sudeste",
       "displayName": "BR-Sudeste",
+      "countryCode": "BR",
+      "countryName": "Brazil",
       "latest": "BR-sudeste",
       "builtAtMs": 1789570665205,
       "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-sudeste",
@@ -45,6 +55,8 @@
     {
       "slug": "sul",
       "displayName": "BR-Sul",
+      "countryCode": "BR",
+      "countryName": "Brazil",
       "latest": "BR-sul",
       "builtAtMs": 1789570086073,
       "releaseUrl": "https://github.com/FCPlech/DashMap-Tiles/releases/tag/BR-sul",

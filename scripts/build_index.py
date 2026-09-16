@@ -3,6 +3,7 @@
 
 Usage:
     ./scripts/build_index.py --slug sul --display-name BR-Sul \\
+        --country-code BR --country-name Brazil \\
         --tag BR-sul --repo FCPlech/DashMap-Tiles
 
 Reads the tag's release-manifest.json from the local staging dir (to confirm
@@ -28,6 +29,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Update tiles-index.json for one region.")
     ap.add_argument("--slug", required=True)
     ap.add_argument("--display-name", required=True)
+    ap.add_argument("--country-code", default=None,
+                    help="ISO country code (default: display-name prefix before '-', e.g. BR-Sul -> BR)")
+    ap.add_argument("--country-name", default="",
+                    help="country display name for the group header (e.g. Brazil)")
     ap.add_argument("--tag", required=True)
     ap.add_argument("--repo", required=True, help="GitHub repo, e.g. FCPlech/DashMap-Tiles")
     ap.add_argument("--manifest", default=None,
@@ -61,9 +66,15 @@ def main() -> int:
         return 1
 
     previous = next((r for r in index.get("regions", []) if r.get("slug") == args.slug), {})
+    code = args.country_code
+    if code is None:
+        prefix = args.display_name.split("-", 1)[0]
+        code = prefix if len(prefix) == 2 and prefix.isalpha() and prefix.isupper() else ""
     entry = {
         "slug": args.slug,
         "displayName": args.display_name,
+        "countryCode": code,
+        "countryName": args.country_name or previous.get("countryName", ""),
         "latest": args.tag,
         "builtAtMs": manifest_built_at or previous.get("builtAtMs", 0),
         "releaseUrl": f"https://github.com/{args.repo}/releases/tag/{args.tag}",
