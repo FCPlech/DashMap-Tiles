@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DashMap-Tiles per-release manifest",
+  "description": "release-manifest.json shipped as an asset inside every per-region GitHub Release. The app reads this to download + verify + install.",
+  "type": "object",
+  "required": ["schema", "slug", "displayName", "tag", "builtAtMs", "source", "valhalla", "streets", "install", "attribution"],
+  "properties": {
+    "schema": { "const": 1 },
+    "slug": { "type": "string" },
+    "displayName": { "type": "string" },
+    "tag": { "type": "string" },
+    "builtAtMs": { "type": "integer" },
+    "source": {
+      "type": "object",
+      "required": ["pbfFile", "geofabrikUrl"],
+      "properties": {
+        "pbfFile": { "type": "string" },
+        "geofabrikUrl": { "type": "string" },
+        "valhallaVersion": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "valhalla": {
+      "type": "object",
+      "required": ["present", "packaging", "files"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "packaging": { "enum": ["single", "split"] },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "size", "sha256"],
+            "properties": {
+              "name": { "type": "string" },
+              "size": { "type": "integer", "minimum": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "streets": {
+      "type": "object",
+      "required": ["present", "files"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "size", "sha256"],
+            "properties": {
+              "name": { "type": "string" },
+              "size": { "type": "integer", "minimum": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "install": {
+      "type": "object",
+      "description": "Where each asset goes on the device (mirrors update_offline_data.py DATASETS).",
+      "required": ["valhallaDir", "streetsDir"],
+      "properties": {
+        "valhallaDir": { "type": "string" },
+        "streetsDir": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "attribution": { "type": "string" }
+  },
+  "additionalProperties": false
+}

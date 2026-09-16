@@ -1,0 +1,54 @@
+# Validates index + schemas on PRs. Map data itself is never in git,
+# so this only checks the tracked metadata and script syntax.
+name: Validate index and manifests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: JSON syntax (index + schemas)
+        run: |
+          python3 -c "import json; json.load(open('tiles-index.json')); print('tiles-index.json ok')"
+          python3 -c "import json; json.load(open('tiles-index.schema.json')); print('index schema ok')"
+          python3 -c "import json; json.load(open('release-manifest.schema.json')); print('manifest schema ok')"
+
+      - name: Script syntax
+        run: |
+          python3 -m py_compile scripts/publish_region.py scripts/verify_release.py scripts/build_index.py
+          echo "scripts compile ok"
+
+      - name: Index entries match <slug>-vYYYY.MM.DD convention
+        run: |
+          python3 - <<'EOF'
+          import json, re, sys
+          index = json.load(open('tiles-index.json'))
+          assert index.get('schema') == 1, 'index schema must be 1'
+          bad = [r for r in index.get('regions', [])
+                 if not re.match(r'^.+-v\d{4}\.\d{2}\.\d{2}$', r.get('latest', ''))]
+          if bad:
+              print('FAIL: index entries not matching <slug>-vYYYY.MM.DD:', bad)
+              sys.exit(1)
+          print(f"index ok ({len(index.get('regions', []))} regions)")
+          EOF
+
+      - name: No map data tracked in git
+        run: |
+          tracked=$(git ls-files | grep -Ei '\.(tar|sqlite|osm\.pbf|osm\.bz2|gph)$' || true)
+          if [ -n "$tracked" ]; then
+            echo "FAIL: map data files must never be committed (use Release assets):"
+            echo "$tracked"
+            exit 1
+          fi
+          echo "no tracked map data — ok"

@@ -1,0 +1,5 @@
+{
+  "schema": 1,
+  "indexUrl": "https://raw.githubusercontent.com/<org>/DashMap-Tiles/main/tiles-index.json",
+  "regions": []
+}

@@ -1,0 +1,10 @@
+# Release staging + big data live as GitHub Release assets, never in git.
+dist/
+*.tar
+*.tar.part-*
+*.sqlite
+*.osm.pbf
+*.osm.bz2
+valhalla_tiles/
+custom_files/
+__pycache__/

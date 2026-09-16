@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DashMap-Tiles index",
+  "description": "Tracked discovery file the DashMap app fetches to find per-region tile releases.",
+  "type": "object",
+  "required": ["schema", "regions"],
+  "properties": {
+    "schema": { "const": 1 },
+    "indexUrl": { "type": "string" },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slug", "displayName", "latest", "releaseUrl", "manifestUrl"],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_/-]*$",
+            "description": "Geofabrik region id, same slug as tools/map_build/regions/<slug>/ in DashMap."
+          },
+          "displayName": { "type": "string" },
+          "latest": {
+            "type": "string",
+            "pattern": "^.+(-v[0-9]{4}\\.[0-9]{2}\\.[0-9]{2})$",
+            "description": "Release tag, convention <slug>-vYYYY.MM.DD."
+          },
+          "releaseUrl": { "type": "string" },
+          "manifestUrl": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
