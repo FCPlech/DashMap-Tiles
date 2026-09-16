@@ -1,5 +1,9 @@
 # DashMap-Tiles
 
+<p align="center">
+  <img src="branding/dashmap_logo.png" alt="DashMap logo" width="400" />
+</p>
+
 Offline map releases for DashMap: ready-made routing tiles and street
 databases, one GitHub Release per region. This repo is only the hosted
 releases; it builds nothing and references no build tooling.
