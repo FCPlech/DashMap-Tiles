@@ -29,7 +29,9 @@ that path never touches this repo.
 - **One release per region.** Tag format: `<slug>-vYYYY.MM.DD`
   (e.g. `brazil-v2026.09.16`, `sao-paulo-v2026.09.16`).
   The slug is a short region id (e.g. the Geofabrik extract id the files
-  were built from), lower-case, filesystem-safe.
+  were built from), lower-case, filesystem-safe. The display name carries an
+  ISO country prefix (e.g. BR-Sul, BR-Brazil) so regions from different
+  countries stay identifiable.
 - Each release carries **both datasets** (when available):
   - Offline Routing (Valhalla tiles)
   - Nearby Streets (SQLite)
